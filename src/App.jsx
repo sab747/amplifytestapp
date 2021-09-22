@@ -1,7 +1,7 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
-import Amplify, { API, graphqlOperation } from 'aws-amplify';
+import Amplify, { API, graphqlOperation, Storage } from 'aws-amplify';
 import awsconfig from './aws-exports';
 import { AmplifySignOut, withAuthenticator } from '@aws-amplify/ui-react';
 import { listSongs } from './graphql/queries';
@@ -9,17 +9,23 @@ import { updateSong } from './graphql/mutations';
 
 import { useState } from 'react';
 import { useEffect } from 'react';
+import ReactPlayer from 'react-player';
 
-import { Paper, IconButton } from '@material-ui/core';
+import { Paper, IconButton, TextField } from '@material-ui/core';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import FavoriteIcon from '@material-ui/icons/Favorite';
 import PauseIcon from '@material-ui/icons/Pause';
+import AddIcon from '@material-ui/icons/Add';
+import PublishIcon from '@material-ui/icons/Publish';
 
 Amplify.configure(awsconfig);
 
 function App() {
   const [songs, setSongs] = useState([]);
   const [songPlaying, setSongPlaying] = useState('');
+  const [audioURL, setAudioURL] = useState('');
+  const [showAddSong, setShowAddNewSong] = useState(false);
+
 
   useEffect(() => {
       fetchSongs();
@@ -57,9 +63,20 @@ function App() {
         setSongPlaying('');
         return;
     }
-    setSongPlaying(idx);
-    return
-  }
+
+    const songFilePath = songs[idx].filePath;
+    try {
+        const fileAccessURL = await Storage.get(songFilePath, { expires: 60 });
+        console.log('access url', fileAccessURL);
+        setSongPlaying(idx);
+        setAudioURL(fileAccessURL);
+        return;
+    } catch (error) {
+        console.error('error accessing the file from s3', error);
+        setAudioURL('');
+        setSongPlaying('');
+    }
+  };
 
   return (
       <div className="App">
@@ -87,12 +104,60 @@ function App() {
                               </div>
                               <div className="songDescription">{song.description}</div>
                           </div>
+                          {songPlaying === idx ? (
+                              <div className="ourAudioPlayer">
+                                  <ReactPlayer
+                                      url={audioURL}
+                                      controls
+                                      playing
+                                      height="50px"
+                                      onPause={() => toggleSong(idx)}
+                                  />
+                              </div>
+                          ) : null}
                       </Paper>
                   );
               })}
+              {
+                  showAddSong ? ( 
+                      <AddSong
+                          onUpload={() => {
+                              setShowAddNewSong(false);
+                          }}
+                      />
+                  ) : (
+                  <IconButton onClick={() => setShowAddNewSong(true)}>
+                      <AddIcon />
+                  </IconButton>
+              )}
           </div>
       </div>
   );
+
 }
 
 export default withAuthenticator(App);
+
+const AddSong = ({ onUpload }) => {
+  const uploadSong = async () => {
+      //Upload the song
+      onUpload();
+  };
+
+  return (
+      <div className="newSong">
+          <TextField
+              label="Title"
+          />
+          <TextField
+              label="Artist"
+          />
+          <TextField
+              label="Description"
+          />
+          <IconButton onClick={uploadSong}>
+              <PublishIcon />
+          </IconButton>
+      </div>
+  );
+};
