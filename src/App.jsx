@@ -35,19 +35,19 @@ function App() {
   };
 
   const addLike = async idx => {
-      try {
-          const song = songs[idx];
-          song.like = song.like + 1;
-          delete song.createdAt;
-          delete song.updatedAt;
+    try {
+        const song = songs[idx];
+        song.likes = song.likes + 1;
+        delete song.createdAt;
+        delete song.updatedAt;
 
-          const songData = await API.graphql(graphqlOperation(updateSong, { input: song }));
-          const songList = [...songs];
-          songList[idx] = songData.data.updateSong;
-          setSongs(songList);
-      } catch (error) {
-          console.log('error on adding Like to song', error);
-      }
+        const songData = await API.graphql(graphqlOperation(updateSong, { input: song }));
+        const songList = [...songs];
+        songList[idx] = songData.data.updateSong;
+        setSongs(songList);
+    } catch (error) {
+        console.log('error on adding Like to song', error);
+    }
   };
 
   return (
@@ -69,9 +69,9 @@ function App() {
                                   <div className="songOwner">{song.owner}</div>
                               </div>
                               <div>
-                                  <IconButton aria-label="like" onClick={() => addLike(idx)}>
-                                      <FavoriteIcon />
-                                  </IconButton>
+                              <IconButton aria-label="like" onClick={() => addLike(idx)}>
+                                  <FavoriteIcon />
+                              </IconButton>
                                   {song.like}
                               </div>
                               <div className="songDescription">{song.description}</div>
